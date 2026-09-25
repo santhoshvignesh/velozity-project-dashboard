@@ -63,9 +63,31 @@ User 1 ── * Notification
 User 1 ── * RefreshToken
 ```
 
-## Deployment notes
+## Deploying on Vercel
 
-Deploy the API and web client as separate Node-capable services with a reachable managed PostgreSQL database. Set API environment variables from `api/.env.example`. For the web build, configure `VITE_API_URL` to the API origin. Configure Socket.IO/CORS and cookie settings for the deployed origins. Vercel can host the frontend; the long-lived Socket.IO API should run on a Node host that supports WebSockets rather than a serverless function. Run `npm run db:deploy` as the release migration command and `npm run db:seed` only for demo environments.
+Deploy this repository as **two Vercel projects**, both connected to the same GitHub repository:
+
+1. Create the **API** project with `api` as its Root Directory. Vercel detects the Express entry point at `src/index.ts`; the app exports its HTTP server for Vercel Functions and uses Socket.IO WebSocket support. The API project's `vercel.json` runs database migrations during the build and configures the overdue-task cron route.
+2. Create the **web** project with `web` as its Root Directory. Its `vercel.json` builds the Vite app into `dist`.
+3. Deploy the API first, copy its production URL, then set `VITE_API_URL` in the web project to that URL (for example, `https://velozity-api.vercel.app`) and deploy the web project.
+4. Set `CLIENT_ORIGIN` in the API project to the web project's exact production URL. Redeploy the API after changing it.
+
+Set the following API environment variables in Vercel for Production, Preview, and Development as appropriate:
+
+```text
+DATABASE_URL=postgresql://...your-managed-postgres-connection...
+ACCESS_TOKEN_SECRET=<random value, at least 32 characters>
+REFRESH_TOKEN_SECRET=<different random value, at least 32 characters>
+CLIENT_ORIGIN=https://your-web-project.vercel.app
+COOKIE_SAME_SITE=lax
+CRON_SECRET=<random value, at least 16 characters>
+```
+
+Use a managed PostgreSQL provider and a pooled/serverless connection URL when the provider offers one. `CRON_SECRET` protects the scheduled endpoint; Vercel sends it as a bearer token to `/api/cron/overdue`. The configured hourly cron requires a Vercel Pro or Enterprise plan. On the Hobby plan, change the schedule in `api/vercel.json` to a once-daily expression before deploying.
+
+The API build applies committed Prisma migrations. For this assessment's demo accounts and sample projects, run `npm --workspace api run db:seed` **once** from a trusted machine with `DATABASE_URL` set to the hosted database; do not add seeding to the Vercel build command.
+
+For separate custom domains that are cross-site, set `COOKIE_SAME_SITE=none`; cookies will remain secure in production. Do not expose any API secret in the web project's environment variables. Only `VITE_API_URL` belongs in the web project.
 
 ## Known limitations
 
