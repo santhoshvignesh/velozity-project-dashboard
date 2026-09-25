@@ -62,4 +62,5 @@ if (!process.env.VERCEL) cron.schedule('0 * * * *', () => { void markOverdueTask
 app.use((err: any, _req: Request, res: Response, _next: NextFunction) => { if (err instanceof ZodError) return res.status(400).json({ error: { code: 'VALIDATION_ERROR', message: 'Request validation failed', details: err.issues.map(i => ({ path: i.path.join('.'), message: i.message })) } }); const status = err.status || 500; res.status(status).json({ error: { code: err.code || 'INTERNAL_ERROR', message: status === 500 ? 'An unexpected error occurred' : err.message } }); });
 if (!process.env.VERCEL) { const port = Number(process.env.PORT || 4000); server.listen(port, () => console.log(`API listening on http://localhost:${port}`)); }
 export { app };
-export default server;
+export { server };
+export default app;
