@@ -1,2 +1,2 @@
 // Vercel discovers serverless functions under the project's /api directory.
-export { default } from '../src/index';
+export { app as default } from '../src/index';
